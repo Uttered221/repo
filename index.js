@@ -1,17 +1,23 @@
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+
 const { Client, GatewayIntentBits } = require("discord.js");
 const registerCommands = require("./utils/helpers");
 const handleInteraction = require("./core/interactionHandler");
-const { loadDB } = require("./core/database");
+const loadDB = require("./core/database");
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-const TOKEN = process.env.TOKEN;
+if (!TOKEN || !CLIENT_ID) {
+  console.error("TOKEN หรือ CLIENT_ID หาย");
+  process.exit(1);
+}
 
 client.once("ready", async () => {
   console.log(`🔥 บอทออนไลน์: ${client.user.tag}`);
-  loadDB();
+  await loadDB();
   await registerCommands(client);
 });
 
