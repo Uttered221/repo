@@ -3,13 +3,13 @@
 // npm install discord.js
 // ===============================
 
-const { Client, Intents, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 
 const client = new Client({
   intents: [
-    Intents.FLAGS.GUILDS,
-    Intents.FLAGS.GUILD_MEMBERS,
-    Intents.FLAGS.MESSAGE_CONTENT
+    GatewayIntentBits.Guilds,
+GatewayIntentBits.GuildMembers,
+GatewayIntentBits.MessageContent
   ]
 });
 
