@@ -1,8 +1,9 @@
 // ===============================
-// DISCORD BOT - COMPLETE GAMING SYSTEM
+// DISCORD BOT - COMPLETE GAMING SYSTEM + UNO
 // ===============================
 
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
+const express = require("express");
 
 const client = new Client({
   intents: [
@@ -36,25 +37,6 @@ function addLoss(userId) {
 }
 
 // ===============================
-// WELCOME MESSAGE
-// ===============================
-client.on("guildMemberAdd", (member) => {
-  const welcomeEmbed = new EmbedBuilder()
-    .setColor("#7B68EE")
-    .setTitle("🎉 ยินดีต้อนรับ!")
-    .setDescription(`สวัสดี ${member.user.username}!`)
-    .addFields(
-      { name: "🎮 เกมที่มี", value: "UNO • Trivia • RPS • Dice • Flip • Hangman" },
-      { name: "📖 เริ่มต้น", value: "พิมพ์ !help เพื่อดูคำสั่งทั้งหมด" }
-    )
-    .setThumbnail(member.user.displayAvatarURL());
-
-  member.send({ embeds: [welcomeEmbed] }).catch(() => {
-    member.guild.systemChannel?.send({ embeds: [welcomeEmbed] });
-  });
-});
-
-// ===============================
 // MESSAGE HANDLER
 // ===============================
 client.on("messageCreate", async (message) => {
@@ -66,13 +48,105 @@ client.on("messageCreate", async (message) => {
 
   // HELP
   if (command === "help") {
-    const embed = new EmbedBuilder()
-      .setColor("#7B68EE")
-      .setTitle("📚 คำสั่งทั้งหมด")
-      .setDescription(
-        "🎴 !uno   🧠 !trivia   🪨 !rps   🎲 !dice   🪙 !flip   🎮 !hangman   📊 !profile   🏆 !leaderboard   😂 !joke   🏓 !ping"
-      );
-    return message.reply({ embeds: [embed] });
+    return message.reply(
+      "🎴 !uno  🧠 !trivia  🪨 !rps  🎲 !dice  🪙 !flip  📊 !profile  🏆 !leaderboard  😂 !joke  🏓 !ping"
+    );
+  }
+
+  // ===============================
+  // UNO (2 Players Simple)
+  // ===============================
+  if (command === "uno") {
+    if (gameRooms.has(message.channel.id))
+      return message.reply("มีเกมกำลังเล่นอยู่แล้ว");
+
+    const colors = ["แดง", "น้ำเงิน", "เขียว", "เหลือง"];
+    const deck = [];
+
+    for (let color of colors) {
+      for (let i = 0; i <= 9; i++) {
+        deck.push(`${color} ${i}`);
+      }
+    }
+
+    deck.sort(() => Math.random() - 0.5);
+
+    gameRooms.set(message.channel.id, {
+      deck,
+      players: [message.author.id],
+      hands: {},
+      turn: 0,
+      currentCard: deck.pop(),
+    });
+
+    return message.reply("🎴 UNO เริ่มแล้ว! อีกคนพิมพ์ !join");
+  }
+
+  if (command === "join") {
+    const game = gameRooms.get(message.channel.id);
+    if (!game) return;
+    if (game.players.length >= 2)
+      return message.reply("ผู้เล่นครบแล้ว");
+
+    game.players.push(message.author.id);
+
+    game.players.forEach((p) => {
+      game.hands[p] = [];
+      for (let i = 0; i < 5; i++) {
+        game.hands[p].push(game.deck.pop());
+      }
+    });
+
+    return message.channel.send(
+      `🔥 เริ่มเกม!\nไพ่เริ่มต้น: ${game.currentCard}\nถึงตา <@${game.players[0]}>`
+    );
+  }
+
+  if (command === "hand") {
+    const game = gameRooms.get(message.channel.id);
+    if (!game) return;
+    if (!game.hands[message.author.id])
+      return message.reply("คุณไม่ได้อยู่ในเกม");
+
+    return message.author.send(
+      "🃏 ไพ่ของคุณ:\n" + game.hands[message.author.id].join("\n")
+    );
+  }
+
+  if (command === "play") {
+    const game = gameRooms.get(message.channel.id);
+    if (!game) return;
+
+    const playerIndex = game.players.indexOf(message.author.id);
+    if (playerIndex !== game.turn)
+      return message.reply("ยังไม่ถึงตาคุณ");
+
+    const card = args.slice(1).join(" ");
+    const hand = game.hands[message.author.id];
+
+    if (!hand.includes(card))
+      return message.reply("คุณไม่มีไพ่ใบนั้น");
+
+    const [color, number] = card.split(" ");
+    const [curColor, curNumber] = game.currentCard.split(" ");
+
+    if (color !== curColor && number !== curNumber)
+      return message.reply("ลงไม่ได้ สีหรือเลขไม่ตรง");
+
+    game.currentCard = card;
+    game.hands[message.author.id] = hand.filter((c) => c !== card);
+
+    if (game.hands[message.author.id].length === 0) {
+      message.channel.send(`🏆 <@${message.author.id}> ชนะแล้ว!`);
+      gameRooms.delete(message.channel.id);
+      return;
+    }
+
+    game.turn = game.turn === 0 ? 1 : 0;
+
+    return message.channel.send(
+      `ลง ${card}\nไพ่ปัจจุบัน: ${game.currentCard}\nถึงตา <@${game.players[game.turn]}>`
+    );
   }
 
   // ===============================
@@ -82,144 +156,107 @@ client.on("messageCreate", async (message) => {
     const questions = [
       { q: "2 + 2 เท่ากับ?", a: ["4"] },
       { q: "เมืองหลวงของไทย?", a: ["กรุงเทพ", "bangkok"] },
-      { q: "ดาวเคราะห์ที่ใหญ่ที่สุด?", a: ["jupiter"] },
     ];
 
-    const question = questions[Math.floor(Math.random() * questions.length)];
+    const q = questions[Math.floor(Math.random() * questions.length)];
+    gameRooms.set(`trivia_${message.channel.id}`, q);
 
-    const embed = new EmbedBuilder()
-      .setColor("#FF6B9D")
-      .setTitle("🧠 Trivia")
-      .setDescription(question.q)
-      .setFooter({ text: "ตอบด้วย !answer [คำตอบ]" });
-
-    message.reply({ embeds: [embed] }).then((msg) => {
-      gameRooms.set(`trivia_${msg.id}`, question);
-    });
+    return message.reply(
+      `🧠 ${q.q}\nตอบด้วย !answer คำตอบ`
+    );
   }
 
-  if (command === "answer" && args[1]) {
-    const lastMessages = await message.channel.messages.fetch({ limit: 10 });
-    const triviaMsg = lastMessages.find((m) => m.author.bot);
+  if (command === "answer") {
+    const q = gameRooms.get(`trivia_${message.channel.id}`);
+    if (!q) return;
 
-    if (!triviaMsg) return;
-
-    const question = gameRooms.get(`trivia_${triviaMsg.id}`);
-    if (!question) return;
-
-    const answer = args.slice(1).join(" ").toLowerCase();
-    const correct = question.a.some((a) => answer.includes(a));
+    const ans = args.slice(1).join(" ").toLowerCase();
+    const correct = q.a.some((a) => ans.includes(a));
 
     if (correct) {
       addPoints(message.author.id, 25);
-      message.reply("✅ ถูกต้อง! +25 คะแนน");
-      gameRooms.delete(`trivia_${triviaMsg.id}`);
+      gameRooms.delete(`trivia_${message.channel.id}`);
+      return message.reply("✅ ถูกต้อง +25 คะแนน");
     } else {
-      message.reply("❌ ผิด ลองใหม่");
+      return message.reply("❌ ผิด");
     }
   }
 
-  // ===============================
   // RPS
-  // ===============================
   if (command === "rps") {
     const choices = ["rock", "paper", "scissors"];
     const bot = choices[Math.floor(Math.random() * 3)];
+    const player = args[1];
 
-    if (!args[1]) return message.reply("ใช้ !rps rock/paper/scissors");
-
-    const player = args[1].toLowerCase();
     if (!choices.includes(player))
-      return message.reply("เลือก rock, paper หรือ scissors");
+      return message.reply("ใช้ !rps rock/paper/scissors");
 
-    if (player === bot) return message.reply(`เสมอ 🤝 (${bot})`);
+    if (player === bot) return message.reply("เสมอ 🤝");
 
     if (
       (player === "rock" && bot === "scissors") ||
       (player === "paper" && bot === "rock") ||
       (player === "scissors" && bot === "paper")
     ) {
-      addPoints(message.author.id, 15);
-      return message.reply(`ชนะ 🎉 (${bot}) +15 คะแนน`);
+      addPoints(message.author.id, 10);
+      return message.reply("ชนะ 🎉");
     } else {
       addLoss(message.author.id);
-      return message.reply(`แพ้ ☠️ (${bot})`);
+      return message.reply("แพ้ ☠️");
     }
   }
 
-  // DICE
-  if (command === "dice") {
-    const roll = Math.floor(Math.random() * 6) + 1;
-    message.reply(`🎲 ได้ ${roll}`);
-  }
+  if (command === "dice")
+    return message.reply(`🎲 ได้ ${Math.floor(Math.random() * 6) + 1}`);
 
-  // COIN
-  if (command === "flip") {
-    const result = Math.random() < 0.5 ? "หัว 🪙" : "ก้อย 🪙";
-    message.reply(result);
-  }
+  if (command === "flip")
+    return message.reply(Math.random() < 0.5 ? "หัว 🪙" : "ก้อย 🪙");
 
-  // PROFILE
   if (command === "profile") {
     const stats =
       leaderboard.get(message.author.id) || { wins: 0, losses: 0, points: 0 };
 
-    const embed = new EmbedBuilder()
-      .setColor("#2ECC71")
-      .setTitle(`📊 ${message.author.username}`)
-      .addFields(
-        { name: "🏆 ชนะ", value: `${stats.wins}`, inline: true },
-        { name: "💔 แพ้", value: `${stats.losses}`, inline: true },
-        { name: "⭐ คะแนน", value: `${stats.points}`, inline: true }
-      );
-
-    message.reply({ embeds: [embed] });
+    return message.reply(
+      `🏆 ชนะ: ${stats.wins}\n💔 แพ้: ${stats.losses}\n⭐ คะแนน: ${stats.points}`
+    );
   }
 
-  // LEADERBOARD
   if (command === "leaderboard") {
     const sorted = [...leaderboard.entries()]
       .sort((a, b) => b[1].points - a[1].points)
-      .slice(0, 10);
+      .slice(0, 5);
 
-    if (sorted.length === 0)
-      return message.reply("ยังไม่มีใครเล่นเกม");
+    if (!sorted.length) return message.reply("ยังไม่มีข้อมูล");
 
-    let text = "";
-    sorted.forEach((entry, index) => {
-      text += `${index + 1}. <@${entry[0]}> - ${entry[1].points} ⭐\n`;
+    let text = "🏆 Leaderboard\n";
+    sorted.forEach((u, i) => {
+      text += `${i + 1}. <@${u[0]}> - ${u[1].points}⭐\n`;
     });
 
-    message.reply(text);
+    return message.reply(text);
   }
 
-  // JOKE
-  if (command === "joke") {
-    const jokes = [
-      "บอทก็อยากมีวันหยุดนะ 😂",
-      "เล่นเกมเยอะ ๆ จะได้ขึ้นลีดเดอร์บอร์ด 😎",
-      "แพ้ไม่เป็นไร ชนะครั้งหน้าก็ได้ 😆",
-    ];
-    const joke = jokes[Math.floor(Math.random() * jokes.length)];
-    message.reply(joke);
-  }
+  if (command === "joke")
+    return message.reply("😂 เล่นเยอะ ๆ จะเก่งเอง");
 
-  if (command === "ping") {
-    const ping = Date.now() - message.createdTimestamp;
-    message.reply(`🏓 Pong ${ping}ms`);
-  }
+  if (command === "ping")
+    return message.reply(
+      `🏓 Pong ${Date.now() - message.createdTimestamp}ms`
+    );
 });
 
 // ===============================
+// READY
+// ===============================
 client.once("ready", () => {
   console.log(`Bot online: ${client.user.tag}`);
-  client.user.setActivity("!help | Gaming Mode");
 });
 
-const express = require("express");
+// ===============================
+// EXPRESS (กันโดน kill บน Render)
+// ===============================
 const app = express();
 
-// เปิดเว็บกันโดน kill
 app.get("/", (req, res) => {
   res.send("Bot is running");
 });
@@ -229,5 +266,5 @@ app.listen(PORT, () => {
   console.log("Web server started on port " + PORT);
 });
 
-// login ไว้ล่างสุดสุด
+// ===============================
 client.login(process.env.TOKEN);
