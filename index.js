@@ -216,5 +216,18 @@ client.once("ready", () => {
   client.user.setActivity("!help | Gaming Mode");
 });
 
-// ใช้ Environment Variable จาก Render
+const express = require("express");
+const app = express();
+
+// เปิดเว็บกันโดน kill
+app.get("/", (req, res) => {
+  res.send("Bot is running");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Web server started on port " + PORT);
+});
+
+// login ไว้ล่างสุดสุด
 client.login(process.env.TOKEN);
