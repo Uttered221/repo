@@ -1,270 +1,324 @@
-// ===============================
-// DISCORD BOT - COMPLETE GAMING SYSTEM + UNO
-// ===============================
+// ==========================================
+// FULL GAME CENTER BOT (UI + ECONOMY + SHOP)
+// ==========================================
 
-const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
+const {
+  Client,
+  GatewayIntentBits,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  SlashCommandBuilder,
+  REST,
+  Routes,
+} = require("discord.js");
+
+const fs = require("fs");
 const express = require("express");
+
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
 });
 
-const gameRooms = new Map();
-const leaderboard = new Map();
+// ================= DATABASE =================
 
-// ===============================
-// POINT SYSTEM
-// ===============================
-function addPoints(userId, points) {
-  if (!leaderboard.has(userId)) {
-    leaderboard.set(userId, { wins: 0, losses: 0, points: 0 });
-  }
-  const stats = leaderboard.get(userId);
-  stats.points += points;
-  stats.wins += 1;
+const DATA_FILE = "./users.json";
+
+if (!fs.existsSync(DATA_FILE)) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify({}));
 }
 
-function addLoss(userId) {
-  if (!leaderboard.has(userId)) {
-    leaderboard.set(userId, { wins: 0, losses: 0, points: 0 });
-  }
-  leaderboard.get(userId).losses += 1;
+function loadUsers() {
+  return JSON.parse(fs.readFileSync(DATA_FILE));
 }
 
-// ===============================
-// MESSAGE HANDLER
-// ===============================
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-  if (!message.content.startsWith("!")) return;
+function saveUsers(data) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
 
-  const args = message.content.slice(1).split(/ +/);
-  const command = args[0].toLowerCase();
+function getUser(userId) {
+  const users = loadUsers();
+  if (!users[userId]) {
+    users[userId] = {
+      coins: 0,
+      xp: 0,
+      level: 1,
+      wins: 0,
+      losses: 0,
+      items: [],
+    };
+    saveUsers(users);
+  }
+  return users[userId];
+}
 
-  // HELP
-  if (command === "help") {
-    return message.reply(
-      "🎴 !uno  🧠 !trivia  🪨 !rps  🎲 !dice  🪙 !flip  📊 !profile  🏆 !leaderboard  😂 !joke  🏓 !ping"
-    );
+function updateUser(userId, data) {
+  const users = loadUsers();
+  users[userId] = data;
+  saveUsers(users);
+}
+
+// ================= LEVEL SYSTEM =================
+
+function addXP(userId, amount) {
+  const user = getUser(userId);
+  user.xp += amount;
+
+  const needed = user.level * 100;
+  if (user.xp >= needed) {
+    user.xp = 0;
+    user.level += 1;
+    user.coins += 100;
   }
 
-  // ===============================
-  // UNO (2 Players Simple)
-  // ===============================
-  if (command === "uno") {
-    if (gameRooms.has(message.channel.id))
-      return message.reply("มีเกมกำลังเล่นอยู่แล้ว");
+  updateUser(userId, user);
+}
 
-    const colors = ["แดง", "น้ำเงิน", "เขียว", "เหลือง"];
-    const deck = [];
+// ================= SLASH COMMAND DEPLOY =================
 
-    for (let color of colors) {
-      for (let i = 0; i <= 9; i++) {
-        deck.push(`${color} ${i}`);
+const commands = [
+  new SlashCommandBuilder()
+    .setName("menu")
+    .setDescription("เปิดเมนูเกมทั้งหมด"),
+].map((cmd) => cmd.toJSON());
+
+const rest = new REST({ version: "10" }).setToken(TOKEN);
+
+(async () => {
+  try {
+    await rest.put(Routes.applicationCommands(CLIENT_ID), {
+      body: commands,
+    });
+    console.log("Slash commands registered");
+  } catch (error) {
+    console.error(error);
+  }
+})();
+
+// ================= INTERACTION =================
+
+client.on("interactionCreate", async (interaction) => {
+  if (interaction.isChatInputCommand()) {
+    if (interaction.commandName === "menu") {
+      const embed = new EmbedBuilder()
+        .setTitle("🎮 GAME CENTER")
+        .setDescription("เลือกเกมหรือระบบที่ต้องการ");
+
+      const row1 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("rps")
+          .setLabel("🪨 RPS")
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId("profile")
+          .setLabel("📊 โปรไฟล์")
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId("leaderboard")
+          .setLabel("🏆 แรงค์")
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("shop")
+          .setLabel("🛒 ร้านค้า")
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId("daily")
+          .setLabel("🎁 Daily")
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      await interaction.reply({
+        embeds: [embed],
+        components: [row1, row2],
+      });
+    }
+  }
+
+  if (interaction.isButton()) {
+    const userId = interaction.user.id;
+
+    // ================= RPS =================
+    if (interaction.customId === "rps") {
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("rock")
+          .setLabel("Rock")
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId("paper")
+          .setLabel("Paper")
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId("scissors")
+          .setLabel("Scissors")
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      return interaction.reply({
+        content: "เลือกของคุณ",
+        components: [row],
+        ephemeral: true,
+      });
+    }
+
+    if (["rock", "paper", "scissors"].includes(interaction.customId)) {
+      const choices = ["rock", "paper", "scissors"];
+      const bot = choices[Math.floor(Math.random() * 3)];
+      const player = interaction.customId;
+
+      let result = "";
+
+      if (player === bot) {
+        result = "เสมอ 🤝";
+      } else if (
+        (player === "rock" && bot === "scissors") ||
+        (player === "paper" && bot === "rock") ||
+        (player === "scissors" && bot === "paper")
+      ) {
+        result = "ชนะ 🎉 +10 coins";
+        const user = getUser(userId);
+        user.coins += 10;
+        user.wins += 1;
+        updateUser(userId, user);
+        addXP(userId, 20);
+      } else {
+        result = "แพ้ ☠️";
+        const user = getUser(userId);
+        user.losses += 1;
+        updateUser(userId, user);
       }
+
+      return interaction.update({
+        content: `คุณ: ${player}\nบอท: ${bot}\nผล: ${result}`,
+        components: [],
+      });
     }
 
-    deck.sort(() => Math.random() - 0.5);
+    // ================= PROFILE =================
+    if (interaction.customId === "profile") {
+      const user = getUser(userId);
 
-    gameRooms.set(message.channel.id, {
-      deck,
-      players: [message.author.id],
-      hands: {},
-      turn: 0,
-      currentCard: deck.pop(),
-    });
+      const embed = new EmbedBuilder()
+        .setTitle("📊 โปรไฟล์")
+        .setDescription(
+          `💰 Coins: ${user.coins}\n⭐ Level: ${user.level}\n🎯 XP: ${user.xp}\n🏆 Wins: ${user.wins}\n💀 Losses: ${user.losses}`
+        );
 
-    return message.reply("🎴 UNO เริ่มแล้ว! อีกคนพิมพ์ !join");
-  }
-
-  if (command === "join") {
-    const game = gameRooms.get(message.channel.id);
-    if (!game) return;
-    if (game.players.length >= 2)
-      return message.reply("ผู้เล่นครบแล้ว");
-
-    game.players.push(message.author.id);
-
-    game.players.forEach((p) => {
-      game.hands[p] = [];
-      for (let i = 0; i < 5; i++) {
-        game.hands[p].push(game.deck.pop());
-      }
-    });
-
-    return message.channel.send(
-      `🔥 เริ่มเกม!\nไพ่เริ่มต้น: ${game.currentCard}\nถึงตา <@${game.players[0]}>`
-    );
-  }
-
-  if (command === "hand") {
-    const game = gameRooms.get(message.channel.id);
-    if (!game) return;
-    if (!game.hands[message.author.id])
-      return message.reply("คุณไม่ได้อยู่ในเกม");
-
-    return message.author.send(
-      "🃏 ไพ่ของคุณ:\n" + game.hands[message.author.id].join("\n")
-    );
-  }
-
-  if (command === "play") {
-    const game = gameRooms.get(message.channel.id);
-    if (!game) return;
-
-    const playerIndex = game.players.indexOf(message.author.id);
-    if (playerIndex !== game.turn)
-      return message.reply("ยังไม่ถึงตาคุณ");
-
-    const card = args.slice(1).join(" ");
-    const hand = game.hands[message.author.id];
-
-    if (!hand.includes(card))
-      return message.reply("คุณไม่มีไพ่ใบนั้น");
-
-    const [color, number] = card.split(" ");
-    const [curColor, curNumber] = game.currentCard.split(" ");
-
-    if (color !== curColor && number !== curNumber)
-      return message.reply("ลงไม่ได้ สีหรือเลขไม่ตรง");
-
-    game.currentCard = card;
-    game.hands[message.author.id] = hand.filter((c) => c !== card);
-
-    if (game.hands[message.author.id].length === 0) {
-      message.channel.send(`🏆 <@${message.author.id}> ชนะแล้ว!`);
-      gameRooms.delete(message.channel.id);
-      return;
+      return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
-    game.turn = game.turn === 0 ? 1 : 0;
+    // ================= LEADERBOARD =================
+    if (interaction.customId === "leaderboard") {
+      const users = loadUsers();
+      const sorted = Object.entries(users)
+        .sort((a, b) => b[1].coins - a[1].coins)
+        .slice(0, 5);
 
-    return message.channel.send(
-      `ลง ${card}\nไพ่ปัจจุบัน: ${game.currentCard}\nถึงตา <@${game.players[game.turn]}>`
-    );
-  }
+      let text = "";
+      sorted.forEach((u, i) => {
+        text += `${i + 1}. <@${u[0]}> - ${u[1].coins} coins\n`;
+      });
 
-  // ===============================
-  // TRIVIA
-  // ===============================
-  if (command === "trivia") {
-    const questions = [
-      { q: "2 + 2 เท่ากับ?", a: ["4"] },
-      { q: "เมืองหลวงของไทย?", a: ["กรุงเทพ", "bangkok"] },
-    ];
+      return interaction.reply({
+        content: text || "ยังไม่มีข้อมูล",
+      });
+    }
 
-    const q = questions[Math.floor(Math.random() * questions.length)];
-    gameRooms.set(`trivia_${message.channel.id}`, q);
+    // ================= DAILY =================
+    if (interaction.customId === "daily") {
+      const user = getUser(userId);
+      user.coins += 50;
+      updateUser(userId, user);
 
-    return message.reply(
-      `🧠 ${q.q}\nตอบด้วย !answer คำตอบ`
-    );
-  }
+      return interaction.reply({
+        content: "🎁 ได้ 50 coins แล้ว",
+        ephemeral: true,
+      });
+    }
 
-  if (command === "answer") {
-    const q = gameRooms.get(`trivia_${message.channel.id}`);
-    if (!q) return;
+    // ================= SHOP =================
+    if (interaction.customId === "shop") {
+      const embed = new EmbedBuilder()
+        .setTitle("🛒 ร้านค้า")
+        .setDescription("เลือกซื้อสินค้า");
 
-    const ans = args.slice(1).join(" ").toLowerCase();
-    const correct = q.a.some((a) => ans.includes(a));
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("buy_theme")
+          .setLabel("Red Theme - 200")
+          .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+          .setCustomId("buy_vip")
+          .setLabel("VIP Badge - 500")
+          .setStyle(ButtonStyle.Success)
+      );
 
-    if (correct) {
-      addPoints(message.author.id, 25);
-      gameRooms.delete(`trivia_${message.channel.id}`);
-      return message.reply("✅ ถูกต้อง +25 คะแนน");
-    } else {
-      return message.reply("❌ ผิด");
+      return interaction.reply({
+        embeds: [embed],
+        components: [row],
+        ephemeral: true,
+      });
+    }
+
+    if (interaction.customId === "buy_theme") {
+      const user = getUser(userId);
+      if (user.coins < 200)
+        return interaction.reply({
+          content: "เงินไม่พอ",
+          ephemeral: true,
+        });
+
+      user.coins -= 200;
+      user.items.push("Red Theme");
+      updateUser(userId, user);
+
+      return interaction.reply({
+        content: "ซื้อ Red Theme สำเร็จ",
+        ephemeral: true,
+      });
+    }
+
+    if (interaction.customId === "buy_vip") {
+      const user = getUser(userId);
+      if (user.coins < 500)
+        return interaction.reply({
+          content: "เงินไม่พอ",
+          ephemeral: true,
+        });
+
+      user.coins -= 500;
+      user.items.push("VIP Badge");
+      updateUser(userId, user);
+
+      return interaction.reply({
+        content: "ซื้อ VIP สำเร็จ",
+        ephemeral: true,
+      });
     }
   }
-
-  // RPS
-  if (command === "rps") {
-    const choices = ["rock", "paper", "scissors"];
-    const bot = choices[Math.floor(Math.random() * 3)];
-    const player = args[1];
-
-    if (!choices.includes(player))
-      return message.reply("ใช้ !rps rock/paper/scissors");
-
-    if (player === bot) return message.reply("เสมอ 🤝");
-
-    if (
-      (player === "rock" && bot === "scissors") ||
-      (player === "paper" && bot === "rock") ||
-      (player === "scissors" && bot === "paper")
-    ) {
-      addPoints(message.author.id, 10);
-      return message.reply("ชนะ 🎉");
-    } else {
-      addLoss(message.author.id);
-      return message.reply("แพ้ ☠️");
-    }
-  }
-
-  if (command === "dice")
-    return message.reply(`🎲 ได้ ${Math.floor(Math.random() * 6) + 1}`);
-
-  if (command === "flip")
-    return message.reply(Math.random() < 0.5 ? "หัว 🪙" : "ก้อย 🪙");
-
-  if (command === "profile") {
-    const stats =
-      leaderboard.get(message.author.id) || { wins: 0, losses: 0, points: 0 };
-
-    return message.reply(
-      `🏆 ชนะ: ${stats.wins}\n💔 แพ้: ${stats.losses}\n⭐ คะแนน: ${stats.points}`
-    );
-  }
-
-  if (command === "leaderboard") {
-    const sorted = [...leaderboard.entries()]
-      .sort((a, b) => b[1].points - a[1].points)
-      .slice(0, 5);
-
-    if (!sorted.length) return message.reply("ยังไม่มีข้อมูล");
-
-    let text = "🏆 Leaderboard\n";
-    sorted.forEach((u, i) => {
-      text += `${i + 1}. <@${u[0]}> - ${u[1].points}⭐\n`;
-    });
-
-    return message.reply(text);
-  }
-
-  if (command === "joke")
-    return message.reply("😂 เล่นเยอะ ๆ จะเก่งเอง");
-
-  if (command === "ping")
-    return message.reply(
-      `🏓 Pong ${Date.now() - message.createdTimestamp}ms`
-    );
 });
 
-// ===============================
-// READY
-// ===============================
-client.once("ready", () => {
-  console.log(`Bot online: ${client.user.tag}`);
-});
+// ================= EXPRESS KEEP ALIVE =================
 
-// ===============================
-// EXPRESS (กันโดน kill บน Render)
-// ===============================
 const app = express();
+app.get("/", (req, res) => res.send("Bot Running"));
+app.listen(process.env.PORT || 3000);
 
-app.get("/", (req, res) => {
-  res.send("Bot is running");
+// ================= READY =================
+
+client.once("ready", () => {
+  console.log(`Logged in as ${client.user.tag}`);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Web server started on port " + PORT);
-});
-
-// ===============================
-client.login(process.env.TOKEN);
+client.login(TOKEN);
