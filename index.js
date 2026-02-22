@@ -1,6 +1,5 @@
 // ===============================
 // DISCORD BOT - COMPLETE GAMING SYSTEM
-// npm install discord.js
 // ===============================
 
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
@@ -8,12 +7,13 @@ const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-GatewayIntentBits.GuildMembers,
-GatewayIntentBits.MessageContent
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
   ]
 });
 
-const TOKEN = 'YOUR_BOT_TOKEN_HERE';
+const TOKEN = process.env.TOKEN;
 
 const gameRooms = new Map();
 const leaderboard = new Map();
@@ -57,7 +57,7 @@ client.on('guildMemberAdd', (member) => {
 });
 
 // ===============================
-// HELP
+// COMMAND HANDLER
 // ===============================
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
@@ -73,10 +73,9 @@ client.on('messageCreate', async (message) => {
       .setDescription(`
 🎴 !uno
 🧠 !trivia
-🪨 !rps
+🪨 !rps rock/paper/scissors
 🎲 !dice
 🪙 !flip
-🎮 !hangman
 📊 !profile
 🏆 !leaderboard
 😂 !joke
@@ -85,9 +84,7 @@ client.on('messageCreate', async (message) => {
     return message.reply({ embeds: [embed] });
   }
 
-  // ===============================
   // TRIVIA
-  // ===============================
   if (command === 'trivia') {
     const questions = [
       { q: '2 + 2 เท่ากับ?', a: ['4'] },
@@ -103,14 +100,13 @@ client.on('messageCreate', async (message) => {
       .setDescription(question.q)
       .setFooter({ text: 'ตอบด้วย !answer [คำตอบ]' });
 
-    message.reply({ embeds: [embed] }).then(msg => {
-      gameRooms.set(`trivia_${msg.id}`, question);
-    });
+    const sent = await message.reply({ embeds: [embed] });
+    gameRooms.set(`trivia_${sent.id}`, question);
   }
 
   if (command === 'answer' && args[1]) {
-    const lastMessages = await message.channel.messages.fetch({ limit: 10 });
-    const triviaMsg = lastMessages.find(m => m.author.bot);
+    const messages = await message.channel.messages.fetch({ limit: 10 });
+    const triviaMsg = messages.find(m => m.author.bot);
 
     if (!triviaMsg) return;
 
@@ -129,9 +125,7 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  // ===============================
   // RPS
-  // ===============================
   if (command === 'rps') {
     const choices = ['rock', 'paper', 'scissors'];
     const bot = choices[Math.floor(Math.random() * 3)];
@@ -162,25 +156,16 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  // ===============================
-  // DICE
-  // ===============================
   if (command === 'dice') {
     const roll = Math.floor(Math.random() * 6) + 1;
     message.reply(`🎲 ได้ ${roll}`);
   }
 
-  // ===============================
-  // COIN
-  // ===============================
   if (command === 'flip') {
     const result = Math.random() < 0.5 ? 'หัว 🪙' : 'ก้อย 🪙';
     message.reply(result);
   }
 
-  // ===============================
-  // PROFILE
-  // ===============================
   if (command === 'profile') {
     const stats = leaderboard.get(message.author.id) || { wins: 0, losses: 0, points: 0 };
 
@@ -196,9 +181,6 @@ client.on('messageCreate', async (message) => {
     message.reply({ embeds: [embed] });
   }
 
-  // ===============================
-  // LEADERBOARD
-  // ===============================
   if (command === 'leaderboard') {
     const sorted = [...leaderboard.entries()]
       .sort((a, b) => b[1].points - a[1].points)
@@ -214,9 +196,6 @@ client.on('messageCreate', async (message) => {
     message.reply(text);
   }
 
-  // ===============================
-  // JOKE
-  // ===============================
   if (command === 'joke') {
     const jokes = [
       'บอทก็อยากมีวันหยุดนะ 😂',
@@ -235,7 +214,7 @@ client.on('messageCreate', async (message) => {
 
 client.once('ready', () => {
   console.log(`Bot online: ${client.user.tag}`);
-  client.user.setActivity('!help | Gaming Mode', { type: 'PLAYING' });
+  client.user.setActivity('!help | Gaming Mode');
 });
 
 client.login(TOKEN);
