@@ -174,7 +174,7 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-client.login(TOKEN);
+client.login(process.env.TOKEN);
 
 const express = require('express');
 const app = express();
