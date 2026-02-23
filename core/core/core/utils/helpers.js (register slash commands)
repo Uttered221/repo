@@ -1,6 +1,10 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, REST, Routes } = require("discord.js");
+
+const CLIENT_ID = process.env.CLIENT_ID;
+const TOKEN = process.env.TOKEN;
 
 async function registerCommands(client) {
+
   const commands = [
     new SlashCommandBuilder()
       .setName("game")
@@ -10,7 +14,7 @@ async function registerCommands(client) {
           .setDescription("เลือกเกม")
           .setRequired(true)
           .addChoices(
-            { name: "UNO", value: "uno" },
+            { name: "Uno", value: "uno" },
             { name: "Blackjack", value: "blackjack" },
             { name: "Slot", value: "slot" },
             { name: "Dice", value: "dice" }
@@ -18,7 +22,20 @@ async function registerCommands(client) {
       )
   ].map(c => c.toJSON());
 
-  await client.application.commands.set(commands);
+  const rest = new REST({ version: "10" }).setToken(TOKEN);
+
+  try {
+    console.log("⏳ กำลังลงทะเบียนคำสั่ง...");
+
+    await rest.put(
+      Routes.applicationCommands(CLIENT_ID),
+      { body: commands }
+    );
+
+    console.log("✅ ลงทะเบียนคำสั่งเรียบร้อย");
+  } catch (err) {
+    console.error("❌ ลงทะเบียนคำสั่งล้มเหลว:", err);
+  }
 }
 
 module.exports = registerCommands;
