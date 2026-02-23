@@ -3,8 +3,7 @@ const {
   addCoin
 } = require("./database");
 
-/* ==== import เกมทั้งหมด ==== */
-
+// ==== import เกมทั้งหมด ====
 const speeduno = require("./speeduno");
 const elementwar = require("./elementwar");
 const dailyreward = require("./dailyreward");
@@ -19,56 +18,72 @@ const slot = require("./slot");
 const uno = require("./uno");
 const wordchain = require("./wordchain");
 
-/* ============================= */
+// =====================================
 
 async function brain(interaction) {
-  if (!interaction.isButton()) return;
 
-  const id = interaction.customId;
+  // ==============================
+  // SLASH COMMAND
+  // ==============================
+  if (interaction.isChatInputCommand()) {
 
-/* =============================
-   DAILY
-============================= */
+    const { commandName } = interaction;
 
-  if (id === "daily_claim") {
-    const result = dailyreward.claimDaily(interaction.user.id);
+    // ตัวอย่าง slash command
+    if (commandName === "ping") {
+      return interaction.reply({ content: "pong", ephemeral: true });
+    }
 
-    const embed = dailyreward.buildDailyEmbed(result);
-    return interaction.reply({ embeds: [embed], ephemeral: true });
+    // เพิ่ม command อื่นตรงนี้
+    return;
   }
 
-/* =============================
-   SPEED UNO
-============================= */
+  // ==============================
+  // BUTTON
+  // ==============================
+  if (interaction.isButton()) {
 
-  if (id.startsWith("speeduno_play_")) {
-    const roomId = id.split("_")[2];
+    const id = interaction.customId;
 
-    speeduno.playCard(roomId, interaction.user.id);
+    // ===== DAILY =====
+    if (id === "daily_claim") {
+      const result = dailyreward.claimDaily(interaction.user.id);
+      const embed = dailyreward.buildDailyEmbed(result);
 
-    addCoin(interaction.user.id, 10);
-    addXP(interaction.user.id, 5);
+      return interaction.reply({
+        embeds: [embed],
+        ephemeral: true
+      });
+    }
 
-    return interaction.deferUpdate();
+    // ===== SPEED UNO =====
+    if (id.startsWith("speeduno_play_")) {
+
+      const roomId = id.split("_")[2];
+
+      speeduno.playCard(roomId, interaction.user.id);
+
+      addCoin(interaction.user.id, 10);
+      addXP(interaction.user.id, 5);
+
+      return interaction.deferUpdate();
+    }
+
+    // ===== ELEMENT WAR =====
+    if (id.startsWith("element_")) {
+
+      const parts = id.split("_");
+      const element = parts[1];
+      const roomId = parts[2];
+
+      elementwar.chooseElement(roomId, interaction.user.id, element);
+
+      return interaction.deferUpdate();
+    }
+
+    // ===== เพิ่มเกมอื่น pattern เดียวกัน =====
+
   }
-
-/* =============================
-   ELEMENT WAR
-============================= */
-
-  if (id.startsWith("element_")) {
-    const parts = id.split("_");
-    const element = parts[1];
-    const roomId = parts[2];
-
-    elementwar.chooseElement(roomId, interaction.user.id, element);
-
-    return interaction.deferUpdate();
-  }
-
-/* =============================
-   เพิ่มเกมอื่นตาม pattern เดียวกัน
-============================= */
 
 }
 
