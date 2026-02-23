@@ -4,7 +4,6 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const registerCommands = require("./core/core/core/utils/helpers");
 const handleInteraction = require("./core/core/core/interactionHandler");
 const loadDB = require("./core/core/core/database");
-
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
