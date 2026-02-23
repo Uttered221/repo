@@ -1,26 +1,35 @@
+// ===== ENV =====
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 
+// ===== REQUIRE FILES =====
 const registerCommands = require("./core/core/core/utils/helpers");
-const handleInteraction = require("./core/core/core/interactionHandler");
 const loadDB = require("./core/database");
+const { Client, GatewayIntentBits } = require("discord.js");
+
+// ===== CREATE CLIENT =====
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+    intents: [GatewayIntentBits.Guilds]
 });
 
+// ===== CHECK ENV =====
 if (!TOKEN || !CLIENT_ID) {
-  console.error("TOKEN หรือ CLIENT_ID หาย");
-  process.exit(1);
+    console.error("TOKEN หรือ CLIENT_ID หาย");
+    process.exit(1);
 }
 
+// ===== READY EVENT =====
 client.once("ready", async () => {
-  console.log(`🔥 บอทออนไลน์: ${client.user.tag}`);
-  await loadDB();
-  await registerCommands(client);
+    console.log(`🔥 บอทออนไลน์แล้ว: ${client.user.tag}`);
+    
+    try {
+        await loadDB();
+        await registerCommands(client);
+        console.log("✅ โหลดระบบเรียบร้อย");
+    } catch (err) {
+        console.error("❌ มี error ตอนเริ่มระบบ:", err);
+    }
 });
 
-client.on("interactionCreate", async (interaction) => {
-  handleInteraction(interaction, client);
-});
-
+// ===== LOGIN =====
 client.login(TOKEN);
