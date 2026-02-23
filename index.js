@@ -3,7 +3,7 @@ const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 
 // ===== REQUIRE FILES =====
-require('./core/utils/helpers')
+require("./core/utils/helpers");
 const loadDB = require("./core/database");
 const { Client, GatewayIntentBits } = require("discord.js");
 const { brain } = require("./core/brain");
