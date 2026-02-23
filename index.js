@@ -3,7 +3,7 @@ const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 
 // ===== REQUIRE FILES =====
-require("./core/utils/helpers");
+const { registerCommands } = require("./core/utils/helpers");
 const loadDB = require("./core/database");
 const { Client, GatewayIntentBits } = require("discord.js");
 const { brain } = require("./core/brain");
@@ -20,7 +20,7 @@ if (!TOKEN || !CLIENT_ID) {
 
 // ===== READY EVENT =====
 client.once("ready", async () => {
-    console.log(`บอทออนไลน์แล้ว: ${client.user.tag}`);
+    console.log("บอทออนไลน์แล้ว: " + client.user.tag);
     
     try {
         await loadDB();
