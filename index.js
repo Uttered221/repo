@@ -6,7 +6,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 require('./core/utils/helpers')
 const loadDB = require("./core/database");
 const { Client, GatewayIntentBits } = require("discord.js");
-
+const { brain } = require("./core/brain");
 // ===== CREATE CLIENT =====
 const client = new Client({
     intents: [GatewayIntentBits.Guilds]
@@ -29,7 +29,17 @@ client.once("ready", async () => {
     } catch (err) {
         console.error("❌ มี error ตอนเริ่มระบบ:", err);
     }
+}
 });
 
-// ===== LOGIN =====
+// ===== INTERACTION BRAIN =====
+client.on("interactionCreate", async (interaction) => {
+  try {
+    await brain(interaction);
+  } catch (err) {
+    console.error("Brain error:", err);
+  }
+});
+
+// ==== LOGIN ====
 client.login(TOKEN);
