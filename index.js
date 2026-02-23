@@ -20,14 +20,14 @@ if (!TOKEN || !CLIENT_ID) {
 
 // ===== READY EVENT =====
 client.once("ready", async () => {
-    console.log(`⚠️ บอทออนไลน์แล้ว: ${client.user.tag}`);
+    console.log(`บอทออนไลน์แล้ว: ${client.user.tag}`);
     
     try {
         await loadDB();
         await registerCommands(client);
-        console.log("✅ โหลดระบบเรียบร้อย");
+        console.log(" โหลดระบบเรียบร้อย");
     } catch (err) {
-        console.error("❌ มี error ตอนเริ่มระบบ:", err);
+        console.error(" มี error ตอนเริ่มระบบ:", err);
     }
 }
 });
