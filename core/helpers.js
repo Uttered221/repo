@@ -38,4 +38,5 @@ async function registerCommands(client) {
   }
 }
 
-module.exports = registerCommands;
+
+module.exports = { registerCommands }
