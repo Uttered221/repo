@@ -20,7 +20,7 @@ if (!TOKEN || !CLIENT_ID) {
 
 // ===== READY EVENT =====
 client.once("ready", async () => {
-    console.log(`🔥 บอทออนไลน์แล้ว: ${client.user.tag}`);
+    console.log(`⚠️ บอทออนไลน์แล้ว: ${client.user.tag}`);
     
     try {
         await loadDB();
