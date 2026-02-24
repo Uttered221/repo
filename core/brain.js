@@ -1,3 +1,6 @@
+const speed = require("./speed");
+const profile = require("./profile");
+const leaderboard = require("./leaderboard");
 const {
   addXP,
   addCoin
@@ -23,53 +26,43 @@ const wordchain = require("./wordchain");
 async function brain(interaction) {
 
   // ==============================
-  // SLASH COMMAND
-  // ==============================
-  if (interaction.isChatInputCommand()) {
-
+  /// ===== SLASH COMMAND =====
+if (interaction.isChatInputCommand()) {
   const { commandName } = interaction;
 
   if (commandName === "ping") {
     return interaction.reply({ content: "pong", ephemeral: true });
   }
 
+  if (commandName === "speeduno") return speeduno.run(interaction);
+  if (commandName === "speed") return speed.run(interaction);
+  if (commandName === "elementwar") return elementwar.run(interaction);
+  if (commandName === "quiz") return quiz.run(interaction);
+  if (commandName === "slot") return slot.run(interaction);
+  if (commandName === "hangman") return hangman.run(interaction);
+  if (commandName === "numberguess") return numberguess.run(interaction);
+  if (commandName === "duel") return duel.run(interaction);
+  if (commandName === "boss") return boss.run(interaction);
+  if (commandName === "criticalbattle") return critical.run(interaction);
+  if (commandName === "diceroll") return diceroll.run(interaction);
+  if (commandName === "uno") return uno.run(interaction);
+  if (commandName === "wordchain") return wordchain.run(interaction);
+  if (commandName === "daily") return dailyreward.run(interaction);
+  if (commandName === "profile") return profile.run(interaction);
+  if (commandName === "leaderboard") return leaderboard.run(interaction);
+
   return interaction.reply({
-    content: `ยังไม่มี handler สำหรับ ${commandName}`,
-    ephemeral: true
-  });
-  }
-  // ==============================
-  // BUTTON
-  // ==============================
-  if (interaction.isButton()) {
+   content: `ยังไม่มี handler สำหรับ ${commandName}`,
+   ephemeral: true
+});
+
+} //
+
+// ===== BUTTON =====
+if (interaction.isButton()) {
 
     const id = interaction.customId;
 
-    // ===== DAILY =====
-    if (id === "daily_claim") {
-      const result = dailyreward.claimDaily(interaction.user.id);
-      const embed = dailyreward.buildDailyEmbed(result);
-
-      return interaction.reply({
-        embeds: [embed],
-        ephemeral: true
-      });
-    }
-
-    // ===== SPEED UNO =====
-    if (id.startsWith("speeduno_play_")) {
-
-      const roomId = id.split("_")[2];
-
-      speeduno.playCard(roomId, interaction.user.id);
-
-      addCoin(interaction.user.id, 10);
-      addXP(interaction.user.id, 5);
-
-      return interaction.deferUpdate();
-    }
-
-    // ===== ELEMENT WAR =====
     if (id.startsWith("element_")) {
 
       const parts = id.split("_");
@@ -80,11 +73,8 @@ async function brain(interaction) {
 
       return interaction.deferUpdate();
     }
-
-    // ===== เพิ่มเกมอื่น pattern เดียวกัน =====
-
   }
 
-}
+} //
 
 module.exports = { brain };
