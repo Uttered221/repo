@@ -27,17 +27,17 @@ async function brain(interaction) {
   // ==============================
   if (interaction.isChatInputCommand()) {
 
-    const { commandName } = interaction;
+  const { commandName } = interaction;
 
-    // ตัวอย่าง slash command
-    if (commandName === "ping") {
-      return interaction.reply({ content: "pong", ephemeral: true });
-    }
-
-    // เพิ่ม command อื่นตรงนี้
-    return;
+  if (commandName === "ping") {
+    return interaction.reply({ content: "pong", ephemeral: true });
   }
 
+  return interaction.reply({
+    content: `ยังไม่มี handler สำหรับ ${commandName}`,
+    ephemeral: true
+  });
+  }
   // ==============================
   // BUTTON
   // ==============================
