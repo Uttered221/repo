@@ -1,4 +1,4 @@
-const { loadDB, saveDB, getUser } = require('./core/db');
+const { getUser, saveDB } = require("../core/data");
 console.log("FILE LOADED");
 
 const { Client, GatewayIntentBits } = require("discord.js");
