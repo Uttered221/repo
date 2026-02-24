@@ -1,4 +1,5 @@
 console.log("FILE LOADED");
+const { Client, GatewayIntentBits } = require("discord.js");
 // ===== ENV =====
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
