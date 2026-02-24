@@ -27,7 +27,6 @@ client.once("ready", async () => {
   console.log("โหลดฐานข้อมูลเรียบร้อย");
 } catch (err) {
   console.error("มี error ตอนเริ่มระบบ:", err);
-}
 });
 // ===== INTERACTION BRAIN =====
 client.on("interactionCreate", async (interaction) => {
