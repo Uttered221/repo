@@ -22,13 +22,13 @@ client.once("ready", async () => {
     console.log("บอทออนไลน์แล้ว: " + client.user.tag);
 
     try {
-        await loadDB();
-        await registerCommands(client);
-        console.log("โหลดฐานข้อมูลเรียบร้อย");
-    } catch (err) {
-        console.error("มี error ตอนเริ่มระบบ:", err);
+  await loadDB();
+  await registerCommands(client);
+  console.log("โหลดฐานข้อมูลเรียบร้อย");
+} catch (err) {
+  console.error("มี error ตอนเริ่มระบบ:", err);
+}
 });
-
 // ===== INTERACTION BRAIN =====
 client.on("interactionCreate", async (interaction) => {
   try {
