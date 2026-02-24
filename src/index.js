@@ -7,7 +7,7 @@ const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 
 // ==== REQUIRE FILES ====
-const { registerCommands } = require("../core/utils/helpers");
+const { registerCommands } = require("../core/helpers");
 const { loadDB } = require("../core/database");
 const { brain } = require("../core/brain");
 
