@@ -26,7 +26,6 @@ client.once("ready", async () => {
   console.log("บอทออนไลน์แล้ว: " + client.user.tag);
 
   try {
-    loadDB();
     await registerCommands(client);
     console.log("โหลดฐานข้อมูลเรียบร้อย");
   } catch (err) {
